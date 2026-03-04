@@ -10,11 +10,11 @@ APP_DIR="/opt/cosherlert"
 DATA_DIR="/var/cosherlert"
 ENV_FILE="/etc/cosherlert/env"
 REPO_URL="https://github.com/tamarHoffman/cosherlert.git"
-SERVER_IP="45.83.40.230"
+SERVER_IP="185.162.124.69"
 
 echo "==> [1/8] System update & dependencies"
 apt-get update -qq
-apt-get install -y python3.11 python3.11-venv python3-pip git nginx curl
+apt-get install -y python3 python3-venv python3-pip git nginx curl
 
 echo "==> [2/8] Create app user and directories"
 id -u $APP_USER &>/dev/null || useradd --system --shell /bin/bash --home $APP_DIR $APP_USER
@@ -30,7 +30,7 @@ fi
 
 echo "==> [4/8] Python venv + install"
 cd $APP_DIR
-sudo -u $APP_USER python3.11 -m venv venv
+sudo -u $APP_USER python3 -m venv venv
 sudo -u $APP_USER venv/bin/pip install -q --upgrade pip
 sudo -u $APP_USER venv/bin/pip install -q -e .
 
@@ -44,7 +44,7 @@ YEMOT_CALLER_ID_B=
 OREF_POLL_INTERVAL=5
 DB_PATH=/var/cosherlert/cosherlert.db
 IVR_WEBHOOK_PORT=8080
-IVR_BASE_URL=http://45.83.40.230
+IVR_BASE_URL=http://185.162.124.69
 LOG_LEVEL=INFO
 ENVEOF
     chmod 600 $ENV_FILE
@@ -57,7 +57,7 @@ echo "==> [6/8] Nginx reverse proxy (HTTP — port 80 → 8080)"
 cat > /etc/nginx/sites-available/cosherlert << 'NGINXEOF'
 server {
     listen 80;
-    server_name 45.83.40.230;
+    server_name 185.162.124.69;
 
     location /ivr/ {
         proxy_pass http://127.0.0.1:8080;
