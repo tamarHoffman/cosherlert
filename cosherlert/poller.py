@@ -26,10 +26,11 @@ def _fetch_alert() -> AlertEvent | None:
             timeout=8,
         )
         resp.raise_for_status()
-        text = resp.text.strip()
+        text = resp.content.decode("utf-8-sig").strip()  # utf-8-sig strips BOM
         if not text or text in ("{}", "null", "[]"):
             return None
-        data = resp.json()
+        import json
+        data = json.loads(text)
         if not data or not data.get("id"):
             return None
         return AlertEvent(
