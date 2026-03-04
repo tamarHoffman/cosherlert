@@ -27,7 +27,31 @@ Full Phase 1 implementation per `artifacts/architecture.md`.
 | `tests/test_db.py` | 6 | CRUD, multi-zone, unsubscribe, dedup, duplicate |
 | **Total** | **15/15 passed** | All main paths + key failure paths |
 
-## Key Decisions & Tradeoffs
+## Deployment
+
+| Component | Choice | Notes |
+|---|---|---|
+| Hosting | Kamatera VPS — Tel Aviv | Israeli IP required (oref.org.il blocks foreign IPs). ~$6/month, 1 vCPU / 1 GB RAM |
+| OS | Ubuntu 22.04 LTS | |
+| Process manager | systemd | `cosherlert.service` unit file |
+| IVR webhook | Nginx reverse proxy + Let's Encrypt | HTTPS required by Yemot for webhook callbacks |
+| DB | SQLite file (local) | `/var/lib/cosherlert/cosherlert.db` |
+| Secrets | `.env` file, not in git | Deployed manually; see `.env.example` |
+
+## User Registration Flow
+
+1. Ayala publishes the system phone number (0772221657) to the target community.
+2. User dials **077-222-1657** from their Kosher phone.
+3. Yemot IVR routes the inbound call to our Flask webhook (`/ivr/start`).
+4. Webhook greets the user and reads their current subscriptions (or "not registered").
+5. User presses **1** to register → zone selection menu (9 zones/page via DTMF).
+6. User presses a digit → subscribed to that zone → can add more or press 9 to finish.
+7. User presses **2** to unsubscribe → all subscriptions removed (Israeli consumer law).
+8. Registration completes in < 2 minutes.
+
+> **Yemot IVR config required:** In Yemot management UI → Extension 1 → type `api` → URL: `https://<VPS_IP>/ivr/start`
+
+
 
 | Decision | Rationale |
 |---|---|

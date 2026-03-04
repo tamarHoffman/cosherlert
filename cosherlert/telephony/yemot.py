@@ -16,7 +16,8 @@ class YemotAdapter(TelephonyAdapter):
         self.token = f"{config.YEMOT_SYSTEM_ID}:{config.YEMOT_PASSWORD}"
         self.caller_id = caller_id
 
-    def _post(self, endpoint: str, params: dict) -> dict:
+    def _call(self, endpoint: str, params: dict) -> dict:
+        """Send a GET request to the Yemot API (Yemot uses GET for all calls)."""
         params["token"] = self.token
         url = f"{BASE_URL}/{endpoint}"
         for attempt in range(1, MAX_RETRIES + 1):
@@ -45,17 +46,18 @@ class YemotAdapter(TelephonyAdapter):
         if not phones:
             return True
         phones_param = ":".join(phones)
-        result = self._post(
+        result = self._call(
             "SendTTS",
             {
                 "phones": phones_param,
                 "ttsMessage": tts_message,
+                "voice": "Elik_2100",
             },
         )
         ok_calls = result.get("OKCalls", 0) if result else 0
         logger.info(
-            "SendTTS -> %d phones | OKCalls=%s | billing=%s | result=%s",
-            len(phones), ok_calls, result.get("billing"), result,
+            "SendTTS -> %d phones | OKCalls=%s | billing=%s",
+            len(phones), ok_calls, result.get("billing", "n/a"),
         )
         return bool(result)
 
