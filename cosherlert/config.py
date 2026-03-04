@@ -8,6 +8,7 @@ YEMOT_CALLER_ID_B = os.environ.get("YEMOT_CALLER_ID_B", "")     # Phase 2: siren
 OREF_POLL_INTERVAL = int(os.environ.get("OREF_POLL_INTERVAL", "5"))
 DB_PATH = os.environ.get("DB_PATH", "cosherlert.db")
 IVR_WEBHOOK_PORT = int(os.environ.get("IVR_WEBHOOK_PORT", "8443"))
+IVR_BASE_URL = os.environ.get("IVR_BASE_URL", "")  # e.g. https://1.2.3.4 — required in production
 LOG_LEVEL = os.environ.get("LOG_LEVEL", "INFO")
 
 OREF_ALERTS_URL = "https://www.oref.org.il/WarningMessages/alert/alerts.json"

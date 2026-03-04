@@ -70,10 +70,23 @@ def test_menu_digit_2_unsubscribes(client):
     assert db.get_subscriptions_for_phone(PHONE) == []
 
 
+def test_menu_digit_9_exits_gracefully(client):
+    rv = _get(client, "/ivr/menu", digit="9")
+    body = rv.data.decode("utf-8")
+    assert "hangup=now" in body
+    assert "לא חוקית" not in body
+
+
 def test_menu_invalid_digit_redirects(client):
     rv = _get(client, "/ivr/menu", digit="5")
     body = rv.data.decode("utf-8")
-    assert "לא חוקית" in body or "goes=/ivr/start" in body
+    assert "לא חוקית" in body or "goes=" in body
+
+
+def test_start_empty_phone_hangs_up(client):
+    rv = client.get("/ivr/start", query_string={"ApiPhone": ""})
+    body = rv.data.decode("utf-8")
+    assert "hangup=now" in body
 
 
 # ─── /ivr/zones ──────────────────────────────────────────────────────────────
@@ -81,7 +94,6 @@ def test_menu_invalid_digit_redirects(client):
 def test_zones_first_page_lists_9_zones(client):
     rv = _get(client, "/ivr/zones", page="0")
     body = rv.data.decode("utf-8")
-    # Should have exactly 9 read=t- lines for numbered zones (לחץ 1–9 עבור ...)
     zone_lines = [l for l in body.splitlines() if "עבור" in l and "read=t-" in l]
     assert len(zone_lines) == 9
 
@@ -93,14 +105,27 @@ def test_zones_second_page_accessible(client):
     assert "read_input=digit" in body
 
 
+def test_zones_bad_page_param_does_not_crash(client):
+    rv = _get(client, "/ivr/zones", page="abc")
+    assert rv.status_code == 200
+
+
 def test_zones_digit_selection_subscribes(client):
-    # Press "1" on page 0 → subscribes to ZONE_LIST[0] = "בית שמש"
     rv = _get(client, "/ivr/zones", digit="1", prev_page="0", page="0")
     body = rv.data.decode("utf-8")
     assert "בית שמש" in body
     assert "נרשמת" in body
     subs = db.get_subscriptions_for_phone(PHONE)
     assert "בית שמש" in subs
+
+
+def test_zones_goes_urls_are_absolute(client):
+    rv = _get(client, "/ivr/zones", page="0")
+    body = rv.data.decode("utf-8")
+    # goes= values must be absolute (contain ://)
+    goes_lines = [l for l in body.splitlines() if "goes=" in l]
+    for line in goes_lines:
+        assert "://" in line, f"goes= URL not absolute: {line}"
 
 
 def test_zones_digit_0_goes_to_next_page(client):

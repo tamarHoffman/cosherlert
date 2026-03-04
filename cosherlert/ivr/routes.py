@@ -16,7 +16,6 @@ Session state: Yemot passes the caller's number as ApiPhone on every request.
 """
 
 import logging
-import requests
 from flask import Flask, request, Response
 
 from cosherlert import db, config
@@ -47,11 +46,30 @@ def _phone() -> str:
     return raw.replace("-", "").replace("+972", "0").strip()
 
 
+def _url(path: str) -> str:
+    """Build absolute URL for Yemot goes= parameters.
+    Uses IVR_BASE_URL from config (e.g. https://1.2.3.4).
+    Falls back to request.host_url for local testing.
+    """
+    base = config.IVR_BASE_URL.rstrip("/") or request.host_url.rstrip("/")
+    return f"{base}{path}"
+
+
+def _safe_int(value: str, default: int = 0) -> int:
+    """Parse int safely; return default on bad input."""
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
+
+
 # ─── Main entry point ────────────────────────────────────────────────────────
 
 @app.route("/ivr/start")
 def ivr_start():
     phone = _phone()
+    if not phone:
+        return _resp("hangup=now")
     logger.info("IVR start: phone=%s", phone)
     subs = db.get_subscriptions_for_phone(phone)
     if subs:
@@ -64,7 +82,7 @@ def ivr_start():
         "read=t-ברוכים הבאים למערכת כשר-לרט, מערכת התראות מוקדמות לטלפונים כשרים",
         current_status,
         "read=t-לרישום לאזורי התרעה לחץ 1. לביטול רישום לחץ 2. לסיום לחץ 9",
-        "read_input=digit,1,10,goes=/ivr/menu,goes=/ivr/start",
+        f"read_input=digit,1,10,goes={_url('/ivr/menu')},goes={_url('/ivr/start')}",
     )
 
 
@@ -74,8 +92,10 @@ def ivr_start():
 def ivr_menu():
     digit = request.args.get("digit", "")
     phone = _phone()
+    if not phone:
+        return _resp("hangup=now")
     if digit == "1":
-        return _show_zone_page(phone, page=0)
+        return _show_zone_page(page=0)
     elif digit == "2":
         db.remove_all_subscriptions(phone)
         logger.info("Unsubscribed all zones: phone=%s", phone)
@@ -84,10 +104,12 @@ def ivr_menu():
             "read=t-תודה ושמרו על עצמכם.",
             "hangup=now",
         )
+    elif digit == "9":
+        return _resp("read=t-תודה ושמרו על עצמכם.", "hangup=now")
     else:
         return _resp(
             "read=t-בחירה לא חוקית, נסה שנית",
-            "goes=/ivr/start",
+            f"goes={_url('/ivr/start')}",
         )
 
 
@@ -96,9 +118,11 @@ def ivr_menu():
 @app.route("/ivr/zones")
 def ivr_zones():
     phone = _phone()
-    page = int(request.args.get("page", "0"))
+    if not phone:
+        return _resp("hangup=now")
+    page = _safe_int(request.args.get("page", "0"))
     digit = request.args.get("digit", "")
-    prev_page = int(request.args.get("prev_page", str(page)))
+    prev_page = _safe_int(request.args.get("prev_page", str(page)), page)
 
     if digit and digit.isdigit() and digit != "0":
         idx = prev_page * ZONES_PER_PAGE + (int(digit) - 1)
@@ -109,17 +133,17 @@ def ivr_zones():
             return _resp(
                 f"read=t-נרשמת לאזור {zone}",
                 "read=t-לרישום לאזור נוסף לחץ 1. לסיום לחץ 9.",
-                "read_input=digit,1,10,goes=/ivr/zones?page=0,goes=/ivr/done",
+                f"read_input=digit,1,10,goes={_url('/ivr/zones?page=0')},goes={_url('/ivr/done')}",
             )
 
-    return _show_zone_page(phone, page)
+    return _show_zone_page(page)
 
 
-def _show_zone_page(phone: str, page: int) -> Response:
+def _show_zone_page(page: int) -> Response:
     start = page * ZONES_PER_PAGE
     page_zones = ZONE_LIST[start: start + ZONES_PER_PAGE]
     if not page_zones:
-        return _resp("read=t-אין עוד אזורים", "goes=/ivr/done")
+        return _resp("read=t-אין עוד אזורים", f"goes={_url('/ivr/done')}")
 
     lines = ["read=t-בחר אזור להתרעה מוקדמת"]
     for i, zone in enumerate(page_zones, 1):
@@ -132,8 +156,8 @@ def _show_zone_page(phone: str, page: int) -> Response:
     next_page = page + 1 if has_next else page
     lines.append(
         f"read_input=digit,1,10,"
-        f"goes=/ivr/zones?prev_page={page}&page={next_page},"
-        f"goes=/ivr/zones?prev_page={page}&page={next_page}"
+        f"goes={_url(f'/ivr/zones?prev_page={page}&page={next_page}')},"
+        f"goes={_url(f'/ivr/zones?prev_page={page}&page={next_page}')}"
     )
     return _resp(*lines)
 
@@ -143,7 +167,7 @@ def _show_zone_page(phone: str, page: int) -> Response:
 @app.route("/ivr/done")
 def ivr_done():
     phone = _phone()
-    subs = db.get_subscriptions_for_phone(phone)
+    subs = db.get_subscriptions_for_phone(phone) if phone else []
     if subs:
         zones_str = ", ".join(subs)
         summary = f"read=t-הרישום הושלם. תקבל התראות עבור האזורים: {zones_str}"
@@ -154,4 +178,5 @@ def ivr_done():
         "read=t-תודה ושמרו על עצמכם.",
         "hangup=now",
     )
+
 
