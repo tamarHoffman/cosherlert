@@ -1,4 +1,4 @@
-# CosherAlert — Project Plan (Gate A)
+# cosherlert — Project Plan (Gate A)
 
 ## Problem Statement
 
@@ -6,7 +6,7 @@ Kosher phone users (feature phones used by the Haredi/ultra-Orthodox community) 
 
 ## Proposed Solution
 
-**CosherAlert**: an automated system that polls the Home Front Command real-time feed, detects pre-warning alerts for user-selected geographic zones, and delivers a tzintuq (short ring + hangup for attention) followed by a TTS voice message to registered Kosher phone numbers.
+**cosherlert**: an automated system that polls the Home Front Command real-time feed, detects pre-warning alerts for user-selected geographic zones, and delivers a tzintuq (short ring + hangup for attention) followed by a TTS voice message to registered Kosher phone numbers.
 
 ---
 
@@ -74,7 +74,7 @@ Kosher phone users (feature phones used by the Haredi/ultra-Orthodox community) 
 
 ```
 ┌──────────────────────────────────────────────────────┐
-│                    CosherAlert                        │
+│                    cosherlert                        │
 │                                                       │
 │  ┌──────────────┐    ┌────────────────────────────┐  │
 │  │  Poller      │───▶│  Alert Dispatcher          │  │
