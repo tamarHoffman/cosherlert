@@ -6,7 +6,7 @@ from cosherlert import config, db
 from cosherlert.poller import run_poller
 from cosherlert.dispatcher import run_dispatcher
 from cosherlert.telephony.yemot import YemotAdapter
-from cosherlert.ivr.routes import app as ivr_app, init_zone_cache
+from cosherlert.ivr.routes import app as ivr_app
 
 logging.basicConfig(
     level=getattr(logging, config.LOG_LEVEL),
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 def start_ivr_server():
-    init_zone_cache()
     # In production: Nginx terminates TLS, forwards to this port
     ivr_app.run(host="127.0.0.1", port=config.IVR_WEBHOOK_PORT, debug=False)
 
