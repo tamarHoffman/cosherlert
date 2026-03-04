@@ -32,7 +32,7 @@ Implement approved AI-first features with clean, testable, production-ready code
 - Branch from `main` after Gate B PR is merged.
 - Commit frequently with descriptive messages as features are completed.
 - When implementation is complete and tests pass: open a PR to `main`.
-- PR title format: `[Developer] Gate C — <short description>`
+- PR title format: `[Developer][Feature/Bugfix/Design/...] Gate C — <short description>`
 - Wait for PR approval (Manager + Ayala) before Gate C is closed.
 - If changes are requested: apply fixes on the same branch, push, update PR.
 - After PR is merged: hand off to Validation Tester.

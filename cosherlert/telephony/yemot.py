@@ -7,7 +7,6 @@ from cosherlert import config
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://www.call2all.co.il/ym/api"
-TZINTUK_TIMEOUT_SEC = 5
 MAX_RETRIES = 3
 RETRY_SLEEP_SEC = 2
 
@@ -24,7 +23,14 @@ class YemotAdapter(TelephonyAdapter):
             try:
                 resp = requests.get(url, params=params, timeout=10)
                 resp.raise_for_status()
-                return resp.json()
+                data = resp.json()
+                if data.get("responseStatus") == "OK":
+                    return data
+                logger.warning(
+                    "Yemot %s returned non-OK status: %s — %s",
+                    endpoint, data.get("responseStatus"), data.get("message"),
+                )
+                return {}
             except Exception as exc:
                 logger.warning("Yemot %s attempt %d failed: %s", endpoint, attempt, exc)
                 if attempt < MAX_RETRIES:
@@ -33,24 +39,25 @@ class YemotAdapter(TelephonyAdapter):
         return {}
 
     def send_tzintuq(self, phones: list[str], tts_message: str) -> bool:
+        """Calls phones and plays a TTS message when answered (SendTTS).
+        Phones separated by ':' for batch delivery.
+        """
         if not phones:
             return True
         phones_param = ":".join(phones)
         result = self._post(
-            "RunTzintuk",
+            "SendTTS",
             {
-                "callerId": self.caller_id,
-                "TzintukTimeOut": TZINTUK_TIMEOUT_SEC,
                 "phones": phones_param,
-                "tts": tts_message,
+                "ttsMessage": tts_message,
             },
         )
-        success = bool(result)
+        ok_calls = result.get("OKCalls", 0) if result else 0
         logger.info(
-            "RunTzintuk -> %d phones | success=%s | result=%s",
-            len(phones), success, result,
+            "SendTTS -> %d phones | OKCalls=%s | billing=%s | result=%s",
+            len(phones), ok_calls, result.get("billing"), result,
         )
-        return success
+        return bool(result)
 
     def send_call(self, phones: list[str], tts_message: str) -> bool:
         raise NotImplementedError("send_call is reserved for Phase 2 siren alerts.")

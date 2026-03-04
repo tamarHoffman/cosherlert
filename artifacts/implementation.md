@@ -13,7 +13,7 @@ Full Phase 1 implementation per `artifacts/architecture.md`.
 | `cosherlert/poller.py` | Async oref.org.il poller (5s, backoff, never crashes) |
 | `cosherlert/dispatcher.py` | Filter cat=10, deduplicate, zone-match, fanout |
 | `cosherlert/telephony/base.py` | Abstract `TelephonyAdapter` (ABC) |
-| `cosherlert/telephony/yemot.py` | Yemot HaMashiach REST adapter (RunTzintuk, retry logic) |
+| `cosherlert/telephony/yemot.py` | Yemot HaMashiach REST adapter (SendTTS outbound call, retry logic) |
 | `cosherlert/tts.py` | Hebrew TTS message builder |
 | `cosherlert/ivr/routes.py` | Flask webhook for Yemot IVR (register, unsubscribe, zone paging) |
 | `cosherlert/main.py` | Entry point: asyncio poller+dispatcher + Flask IVR thread |
@@ -36,17 +36,37 @@ Full Phase 1 implementation per `artifacts/architecture.md`.
 | Dedup logs dispatch even on Yemot API failure | Prevents infinite retry loops on transient errors; log shows `recipients=0` |
 | Zone cache at startup with bundled fallback | oref has no static zone list endpoint; bundled list covers major cities |
 | DTMF paging (9 zones/page) | Kosher phones are numeric-only; supports full zone list without IVR complexity |
+| `SendTTS` instead of `RunTzintuk` | Live testing confirmed `RunTzintuk` delivers ring only (no audio). `SendTTS` places a full outbound call with Hebrew TTS (voice: Elik_2100); user hears the alert message when they answer. Cost: 1 unit/call. |
 
 ## Residual Risks
 
 | Risk | Status |
 |---|---|
-| Yemot account not yet opened | ⚠️ Blocked on Ayala — cannot do end-to-end test without account |
 | Zone name normalization | Basic exact match; niqqud/whitespace variants not yet normalized |
 | IVR zone list completeness | 20 bundled zones; will need expansion post-launch based on user demand |
+| IVR webhook not yet deployed | Flask IVR requires public HTTPS URL; pending Kamatera VPS provisioning + Nginx/Let's Encrypt |
+| SendTTS cost per alert | 1 unit/call (~50 users = 50 units/alert event). Acceptable with current balance (99.7 units). |
+
+## Live Test Results
+
+| Test | Result |
+|---|---|
+| `GetSession` API auth | ✅ Connected, balance confirmed |
+| `RunTzintuk` (ring only) | ✅ Ring delivered, **no audio** — confirmed not suitable for alerts |
+| `SendTTS` (outbound TTS call) | ✅ Call delivered, Hebrew TTS spoken via Elik_2100 voice engine |
+| Balance after tests | 99.7 units remaining |
 
 ## Gate C Decision
 
-**Status: ✅ PASS** — all acceptance criteria met, 15/15 tests pass.
+**Status: ✅ PASS** — all acceptance criteria met, 15/15 tests pass, live SendTTS confirmed.
 
 > **Next owner: Validation Tester** → produce `tests/test-report.md`.
+
+## Next Steps (for Validation Tester)
+
+1. Deploy Flask IVR to Kamatera VPS (Nginx + HTTPS)
+2. Configure Yemot extension to route inbound calls → `/ivr/start` webhook
+3. Test full E2E: mock oref alert → `SendTTS` delivered to registered user
+4. Test IVR self-registration flow (call in → select zones → confirm)
+5. Test unsubscribe flow (Israeli law requirement)
+6. Latency test: alert published → call delivered ≤ 60 seconds
