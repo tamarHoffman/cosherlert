@@ -31,5 +31,6 @@ Drive AI-first delivery by keeping scope clear, simple, and measurable.
 - When output artifact is ready: `git add`, `git commit`, open a PR to `main`.
 - PR title format: `[Manager] Gate A — <short description>`
 - Wait for PR approval before considering the gate closed.
+- PRs for your team: be strict (but not overly pedantic) about scope, clarity, measurability and SHORTEST IMPLEMENTATION.
 - If changes are requested: apply fixes on the same branch, push, update PR.
 - After PR is merged: do NOT proceed to the next gate until the merge is confirmed.

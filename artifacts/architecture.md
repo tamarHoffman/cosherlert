@@ -1,4 +1,4 @@
-# CosherAlert — Architecture (Gate B)
+# cosherlert — Architecture (Gate B)
 
 ## Architect Decisions Summary
 
@@ -67,10 +67,10 @@ token=<system_id>:<password>
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                 CosherAlert — Kamatera Israel VPS               │
+│                 cosherlert — Kamatera Israel VPS               │
 │                                                                  │
 │  ┌──────────────────────────────────────────────────────────┐   │
-│  │                   cosheralert (Python service)           │   │
+│  │                   cosherlert (Python service)           │   │
 │  │                                                          │   │
 │  │   ┌─────────────┐        ┌────────────────────────────┐ │   │
 │  │   │  Poller     │──────▶ │  Dispatcher                │ │   │
@@ -113,7 +113,7 @@ token=<system_id>:<password>
 ## Module Structure
 
 ```
-cosheralert/
+cosherlert/
 ├── main.py                  # Entry point: starts poller + IVR server
 ├── poller.py                # Polls oref every 5s, emits alert events
 ├── dispatcher.py            # Filters cat=10, deduplicates, fans out
@@ -250,7 +250,7 @@ YEMOT_PASSWORD=                # Yemot admin password
 YEMOT_CALLER_ID_A=             # Phone number for pre-warning tzintuqim (Phase 1)
 YEMOT_CALLER_ID_B=             # Phone number for siren calls (Phase 2, unused now)
 OREF_POLL_INTERVAL=5           # seconds
-DB_PATH=/var/cosheralert/cosheralert.db
+DB_PATH=/var/cosherlert/cosherlert.db
 IVR_WEBHOOK_PORT=8443
 LOG_LEVEL=INFO
 ```
@@ -261,27 +261,27 @@ LOG_LEVEL=INFO
 
 ```
 Kamatera VPS (Ubuntu 22.04 LTS)
-├── /opt/cosheralert/              # app code (git clone)
+├── /opt/cosherlert/              # app code (git clone)
 │   └── venv/                      # Python virtualenv
-├── /var/cosheralert/              # runtime data
-│   ├── cosheralert.db             # SQLite database
-│   └── cosheralert.log            # application log
-├── /etc/cosheralert/env           # secrets (not in git)
-├── /etc/systemd/system/cosheralert.service
+├── /var/cosherlert/              # runtime data
+│   ├── cosherlert.db             # SQLite database
+│   └── cosherlert.log            # application log
+├── /etc/cosherlert/env           # secrets (not in git)
+├── /etc/systemd/system/cosherlert.service
 └── Nginx (reverse proxy, HTTPS via Let's Encrypt → Flask :8443)
 ```
 
 **systemd unit:**
 ```ini
 [Unit]
-Description=CosherAlert Service
+Description=cosherlert Service
 After=network.target
 
 [Service]
-User=cosheralert
-WorkingDirectory=/opt/cosheralert
-EnvironmentFile=/etc/cosheralert/env
-ExecStart=/opt/cosheralert/venv/bin/python main.py
+User=cosherlert
+WorkingDirectory=/opt/cosherlert
+EnvironmentFile=/etc/cosherlert/env
+ExecStart=/opt/cosherlert/venv/bin/python main.py
 Restart=always
 RestartSec=5
 
